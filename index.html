@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ガレージ コントローラー</title>
+    <style>
+        :root {
+            --panel-bg: #d8d8d8;
+            --metal-light: #fafdff; /* 少し青みを入れた金属のハイライト */
+            --metal-dark: #a3a8ad;  /* 重厚感のあるシャドウ */
+            --glow-blue: #00bcd4;   /* 青色バックライト */
+            --glow-red: #ff1744;    /* 警告 / ビジー（赤） */
+            --etched-black: #1a1a1a; /* 彫り込みのマットブラック */
+        }
+        
+        /* 画面全体の完全中央寄せ */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #121314;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            box-sizing: border-box;
+            padding: 20px;
+            width: 100%;
+        }
+
+        /* メタルプレートベース */
+        .panel {
+            width: 100%;
+            max-width: 310px;
+            background-color: var(--panel-bg);
+            /* メタルヘアライン加工の深み強化 */
+            background-image: 
+                linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%),
+                linear-gradient(var(--metal-light), var(--metal-dark));
+            background-size: 2px 100%, 100% 100%;
+            
+            padding: 35px 25px;
+            border-radius: 36px;
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.9), 
+                0 20px 45px rgba(0,0,0,0.8),
+                0 0 0 5px #252627;
+            border: 1px solid #888;
+            text-align: center;
+        }
+
+        /* メインステータス（ONLINE）ランプ */
+        .system-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 25px;
+            padding: 6px 14px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 20px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.5);
+        }
+        .status-led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #444;
+            border: 1px solid #666;
+            transition: all 0.4s ease;
+        }
+        .status-led.online {
+            background-color: #00e5ff;
+            border-color: #b2f5ff;
+            box-shadow: 0 0 8px 1px var(--glow-blue);
+        }
+        .status-led.offline {
+            background-color: #ff1744;
+            border-color: #ffb3b3;
+            box-shadow: 0 0 8px 1px var(--glow-red);
+        }
+        .status-label-main {
+            font-size: 10px;
+            font-weight: bold;
+            color: #444;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        }
+
+        /* 各セクション枠（ブラッシュド加工を引き立てるスリット） */
+        .section {
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.04);
+            padding: 20px 10px;
+            border-radius: 24px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,0.5);
+        }
+        .section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: #444;
+            letter-spacing: 2px;
+            margin-bottom: 18px;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        }
+
+        .button-flow-v {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        /* 削り出し丸型メタルボタン */
+        .btn-circle {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            border: 1px solid #8a8a8a;
+            cursor: pointer;
+            outline: none;
+            
+            /* ボタン中央に要素を完璧に真ん中寄せする設定 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            -webkit-user-select: none;
+            user-select: none;
+
+            background-image: 
+                linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%),
+                linear-gradient(#fcfcfc, #b0b5ba);
+            background-size: 4px 100%, 100% 100%;
+
+            box-shadow: 
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 6px 12px rgba(0,0,0,0.35),
+                0 1px 2px rgba(0,0,0,0.2);
+                
+            transition: all 0.1s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ★ 黒く深くえぐられた彫り込みマーク共通（インセットエッチング） */
+        .icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            fill: var(--etched-black); /* SVG塗りつぶし用 */
+            color: var(--etched-black); /* テキスト用 */
+            font-size: 26px;            /* ▲▼のサイズ調整 */
+            font-weight: bold;
+            line-height: 1;
+            
+            /* 文字やSVGを凹んで見せる精密なシャドウ */
+            text-shadow: 0 1px 1px rgba(255,255,255,0.8);
+            filter: drop-shadow(0px -1px 1px rgba(0,0,0,0.6));
+            transition: all 0.1s ease;
+        }
+        
+        /* ▲マークの上下位置の微調整（Flexboxとあわせて完全に中央へ） */
+        .icon-up {
+            transform: translateY(-2px);
+        }
+        .icon-down {
+            transform: translateY(2px);
+        }
+
+        /* 物理的に押し込んだ時のメカニカルな凹み */
+        .btn-circle:active {
+            background-image: 
+                linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%),
+                linear-gradient(#a3a8ad, #d8d8d8);
+            box-shadow: 
+                inset 0 4px 10px rgba(0,0,0,0.4),
+                0 2px 3px rgba(0,0,0,0.2);
+            transform: translateY(2px);
+        }
+
+        /* ==========================================
+         * 青色バックライト発光（Glow）
+         * ========================================== */
+        .btn-circle.active {
+            border-color: var(--glow-blue);
+            box-shadow: 
+                inset 0 1px 0 rgba(255,255,255,0.3),
+                0 0 20px 4px var(--glow-blue),
+                0 3px 6px rgba(0,0,0,0.2);
+        }
+        /* 青く光ったときの黒いえぐれマークのネオン表現 */
+        .btn-circle.active .icon {
+            fill: #111;
+            color: #111;
+            filter: drop-shadow(0 0 8px var(--glow-blue)) drop-shadow(0 0 2px var(--glow-blue));
+            text-shadow: 0 0 6px var(--glow-blue), 0 0 15px var(--glow-blue);
+        }
+
+        /* シャッター動作中 小型赤色LED */
+        .indicator-container {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .led-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #555;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        }
+        .led-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #3a1014;
+            border: 1px solid #777;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.4);
+            transition: all 0.3s ease;
+        }
+        .led-dot.active {
+            background-color: #ff3d00;
+            border-color: #ff8f00;
+            box-shadow: 0 0 10px 2px var(--glow-red), inset 0 1px 0 rgba(255,255,255,0.6);
+            animation: led-blink 1s infinite;
+        }
+        @keyframes led-blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    
+    <div class="system-status">
+        <div id="sys-led" class="status-led"></div>
+        <div id="sys-label" class="status-label-main">CONNECTING...</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">SHUTTER</div>
+        <div class="button-flow-v">
+            <button id="btn-up" class="btn-circle" 
+                    onmousedown="lightOn('btn-up')" onmouseup="lightOff('btn-up')"
+                    ontouchstart="lightOn('btn-up')" ontouchend="lightOff('btn-up')"
+                    onclick="sendControl({shutter: 'up'})">
+                <span class="icon icon-up">▲</span>
+            </button>
+            <button id="btn-down" class="btn-circle" 
+                    onmousedown="lightOn('btn-down')" onmouseup="lightOff('btn-down')"
+                    ontouchstart="lightOn('btn-down')" ontouchend="lightOff('btn-down')"
+                    onclick="sendControl({shutter: 'down'})">
+                <span class="icon icon-down">▼</span>
+            </button>
+        </div>
+        
+        <div class="indicator-container">
+            <div id="shutter-led" class="led-dot"></div>
+            <div class="led-label">BUSY</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">LIGHT</div>
+        <div class="button-flow-v">
+            <button id="btn-light-toggle" class="btn-circle" onclick="toggleLightClick()">
+                <svg class="icon" viewBox="0 0 24 24">
+                    <path d="M12 2C7.58 2 4 5.58 4 10c0 2.76 1.4 5.2 3.54 6.64L9 22h6l1.46-5.36C18.6 15.2 20 12.76 20 10c0-4.42-3.58-8-8-8zm1.5 18h-3v-1h3v1zm1.14-2.5h-5.28l-.54-2H15.1l-.46 2zm1.64-3.8l-.66.44-.26.96H8.28l-.26-.97-.66-.44C5.9 13.9 5 12.04 5 10c0-3.86 3.14-7 7-7s7 3.14 7 7c0 2.04-.9 3.9-2.36 5.14zM12 5c-2.76 0-5 2.24-5 5h1c0-2.21 1.79-4 4-4v-1z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const targetUrl = 'http://192.168.0.150/';
+    let currentLightState = 'off';
+
+    getStatus();
+    setInterval(getStatus, 1000);
+
+    function lightOn(id) { document.getElementById(id).classList.add('active'); }
+    function lightOff(id) { document.getElementById(id).classList.remove('active'); }
+
+    async function getStatus() {
+        try {
+            const response = await fetch(targetUrl, { method: 'GET', mode: 'cors' });
+            if (!response.ok) throw new Error();
+            const data = await response.json();
+            
+            updateUI(data);
+            updateSystemStatus(true);
+        } catch (error) {
+            updateSystemStatus(false);
+        }
+    }
+
+    async function sendControl(commandObj) {
+        try {
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(commandObj)
+            });
+            if (!response.ok) throw new Error();
+            const data = await response.json();
+            
+            updateUI(data);
+            updateSystemStatus(true);
+        } catch (error) {
+            updateSystemStatus(false);
+        }
+    }
+
+    function toggleLightClick() {
+        const nextState = (currentLightState === 'on') ? 'off' : 'on';
+        sendControl({ light: nextState });
+    }
+
+    function updateSystemStatus(isOnline) {
+        const led = document.getElementById('sys-led');
+        const label = document.getElementById('sys-label');
+        
+        if (isOnline) {
+            led.className = 'status-led online';
+            label.innerText = 'STATUS: ONLINE';
+        } else {
+            led.className = 'status-led offline';
+            label.innerText = 'STATUS: OFFLINE';
+            document.getElementById('shutter-led').classList.remove('active');
+        }
+    }
+
+    function updateUI(data) {
+        const ledShutter = document.getElementById('shutter-led');
+        const btnLight = document.getElementById('btn-light-toggle');
+        
+        currentLightState = data.light;
+
+        if (data.shutter === 'moving') {
+            ledShutter.classList.add('active');
+        } else {
+            ledShutter.classList.remove('active');
+        }
+
+        if (data.light === 'on') {
+            btnLight.classList.add('active');
+        } else {
+            btnLight.classList.remove('active');
+        }
+    }
+</script>
+
+</body>
+</html>

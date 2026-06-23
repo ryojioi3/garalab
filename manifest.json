@@ -1,0 +1,16 @@
+{
+  "short_name": "ガレージ",
+  "name": "ガレージ コントローラー",
+  "display": "standalone",
+  "start_url": "index.html",
+  "theme_color": "#121314",
+  "background_color": "#121314",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/596c/596c303.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

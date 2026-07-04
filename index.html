@@ -54,7 +54,7 @@
             text-align: center;
         }
 
-        /* メインステータス（ONLINE）ランプ */
+        /* メメインステータス（ONLINE）ランプ */
         .system-status {
             display: inline-flex;
             align-items: center;
@@ -92,7 +92,7 @@
             text-shadow: 0 1px 0 rgba(255,255,255,0.5);
         }
 
-        /* ★追加：画面切り替え用メタルセレクター */
+        /* 画面切り替え用メタルセレクター */
         .view-selector {
             display: flex;
             justify-content: space-between;
@@ -113,7 +113,7 @@
             letter-spacing: 1px;
             cursor: pointer;
             border-radius: 8px;
-            transition: timeline 0.2s ease;
+            transition: all 0.2s ease;
             text-shadow: 0 1px 0 rgba(255,255,255,0.5);
         }
         .view-btn.active {
@@ -150,7 +150,7 @@
             gap: 18px;
         }
 
-        /* ★追加：EXTRAリレー用のグリッド配置（2列並び） */
+        /* EXTRAリレー用のグリッド配置（2列並び） */
         .relay-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -286,7 +286,7 @@
             box-shadow: 0 0 10px 2px var(--glow-green), inset 0 1px 0 rgba(255,255,255,0.6);
         }
 
-        /* ③ ★追加 EXTRAリレー用：青LED（常時点灯） */
+        /* ③ EXTRAリレー用：青LED（常時点灯） */
         .led-dot.extra-led { background-color: #0a2228; }
         .led-dot.extra-led.active {
             background-color: #00e5ff;
@@ -376,8 +376,8 @@
 <script>
     const targetUrl = 'http://192.168.0.150/';
     let currentLightState = 'off';
-    let currentExtraStates = []; // 追加リレーの状態保持用配列
-    let isGridGenerated = false;  // ボタンの生成重複防止フラグ
+    let currentExtraStates = []; 
+    let isGridGenerated = false;  
 
     getStatus();
     setInterval(getStatus, 1000);
@@ -386,7 +386,7 @@
     function lightOn(id) { document.getElementById(id).classList.add('active'); }
     function lightOff(id) { document.getElementById(id).classList.remove('active'); }
 
-    // ★追加：表示画面切り替えロジック
+    // 表示画面切り替えロジック
     function switchView(view) {
         const btnMain = document.getElementById('view-main');
         const btnExtra = document.getElementById('view-extra');
@@ -406,20 +406,21 @@
         }
     }
 
-    // ★追加：Arduinoのレスポンスに基づき、動的にリレーボタン群を組み立てる
+    // Arduinoのレスポンスに基づき、動的にリレーボタン群を組み立てる
     function generateExtraRelayUI(statesArray) {
         const grid = document.getElementById('extra-relays-grid');
-        grid.innerHTML = ''; // クリア
+        grid.innerHTML = ''; 
 
         statesArray.forEach((state, index) => {
             const node = document.createElement('div');
             node.className = 'relay-node';
-
-            // 1〜8番目の表記
             const relayNum = index + 1;
 
+            // ★修正: PCクリック(mousedown/up)とスマホタップ(touchstart/end)での瞬時発光イベントを追加
             node.innerHTML = `
                 <button id="btn-extra-${index}" class="btn-circle" 
+                        onmousedown="lightOn('btn-extra-${index}')" onmouseup="lightOff('btn-extra-${index}')"
+                        ontouchstart="lightOn('btn-extra-${index}')" ontouchend="lightOff('btn-extra-${index}')"
                         onclick="toggleExtraRelayClick(${index})">
                     <span class="icon" style="font-size:14px;">CH${relayNum}</span>
                 </button>
@@ -469,12 +470,11 @@
         sendControl({ light: nextState });
     }
 
-    // ★追加：EXTRAリレーボタンが押された際の個別反転命令
+    // EXTRAリレーボタンが押された際の個別反転命令
     function toggleExtraRelayClick(index) {
-        // 現在の状態が 1 なら "off"、0 なら "on" を送る
         const nextStatus = (currentExtraStates[index] === 1) ? 'off' : 'on';
         
-        // 物理ボタン風に押した瞬間一瞬光らせる演出
+        // ★変更: タップした瞬間だけ150msだけ青く瞬時発光させる演出（念のためのタイマー補正）
         lightOn(`btn-extra-${index}`);
         setTimeout(() => lightOff(`btn-extra-${index}`), 150);
 
@@ -497,7 +497,6 @@
             document.getElementById('shutter-led').classList.remove('active');
             document.getElementById('light-led').classList.remove('active');
             
-            // オフライン時は全追加LEDの点灯も消す
             currentExtraStates.forEach((_, index) => {
                 const ledEx = document.getElementById(`extra-led-${index}`);
                 const btnEx = document.getElementById(`btn-extra-${index}`);
@@ -527,26 +526,22 @@
             ledLight.classList.remove('active');
         }
 
-        // 3. ★追加：EXTRAリレーの動的UI生成と状態反映
+        // 3. EXTRAリレーの動的UI生成と状態反映
         if (data.extra_relays && Array.isArray(data.extra_relays)) {
             currentExtraStates = data.extra_relays;
             
-            // 最初の一度だけ、またはピン数が変わった場合のみHTML要素を生成
             if (!isGridGenerated || document.querySelectorAll('.relay-node').length !== currentExtraStates.length) {
                 generateExtraRelayUI(currentExtraStates);
             }
 
-            // 個々の状態(1か0か)をLEDとボタン外周のバックライトに同期
+            // ★変更: 個々の状態(1か0か)を「LEDインジケーター」のみに同期させ、ボタンは常時連動から除外
             currentExtraStates.forEach((state, index) => {
                 const ledEx = document.getElementById(`extra-led-${index}`);
-                const btnEx = document.getElementById(`btn-extra-${index}`);
                 
                 if (state === 1) {
-                    if (ledEx) ledEx.classList.add('active'); // インジケーター青点灯
-                    if (btnEx) btnEx.classList.add('active'); // ボタンのバックライト常時Glow
+                    if (ledEx) ledEx.classList.add('active'); // インジケーター青点灯のみ
                 } else {
                     if (ledEx) ledEx.classList.remove('active');
-                    if (btnEx) btnEx.classList.remove('active');
                 }
             });
         }

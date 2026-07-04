@@ -60,7 +60,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             padding: 6px 14px;
             background: rgba(0,0,0,0.06);
             border-radius: 20px;
@@ -92,6 +92,36 @@
             text-shadow: 0 1px 0 rgba(255,255,255,0.5);
         }
 
+        /* ★追加：画面切り替え用メタルセレクター */
+        .view-selector {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.1);
+            padding: 4px;
+            border-radius: 12px;
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.4);
+            margin-bottom: 25px;
+        }
+        .view-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px 0;
+            font-size: 10px;
+            font-weight: bold;
+            color: #555;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: timeline 0.2s ease;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        }
+        .view-btn.active {
+            background-image: linear-gradient(#fcfcfc, #b0b5ba);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+            color: var(--etched-black);
+        }
+
         /* 各セクション枠 */
         .section {
             margin-bottom: 25px;
@@ -118,6 +148,20 @@
             flex-direction: column;
             align-items: center;
             gap: 18px;
+        }
+
+        /* ★追加：EXTRAリレー用のグリッド配置（2列並び） */
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px 10px;
+            justify-items: center;
+            padding: 10px 5px;
+        }
+        .relay-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         /* 削り出し丸型メタルボタン */
@@ -234,7 +278,7 @@
             animation: led-blink 1s infinite;
         }
 
-        /* ② 新設・ライトON：緑LED（常時点灯） */
+        /* ② ライトON：緑LED（常時点灯） */
         .led-dot.light-led { background-color: #0f2c1a; }
         .led-dot.light-led.active {
             background-color: #00e676;
@@ -242,10 +286,23 @@
             box-shadow: 0 0 10px 2px var(--glow-green), inset 0 1px 0 rgba(255,255,255,0.6);
         }
 
+        /* ③ ★追加 EXTRAリレー用：青LED（常時点灯） */
+        .led-dot.extra-led { background-color: #0a2228; }
+        .led-dot.extra-led.active {
+            background-color: #00e5ff;
+            border-color: #b2f5ff;
+            box-shadow: 0 0 10px 2px var(--glow-blue), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+
         @keyframes led-blink {
             0% { opacity: 1; }
             50% { opacity: 0.4; }
             100% { opacity: 1; }
+        }
+
+        /* 表示切り替え用ユーティリティ */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -257,46 +314,61 @@
         <div id="sys-led" class="status-led"></div>
         <div id="sys-label" class="status-label-main">CONNECTING...</div>
     </div>
+
+    <div class="view-selector">
+        <button id="view-main" class="view-btn active" onclick="switchView('main')">MAIN</button>
+        <button id="view-extra" class="view-btn" onclick="switchView('extra')">EXTRA RELAYS</button>
+    </div>
     
-    <div class="section">
-        <div class="section-title">SHUTTER</div>
-        <div class="button-flow-v">
-            <button id="btn-up" class="btn-circle" 
-                    onmousedown="lightOn('btn-up')" onmouseup="lightOff('btn-up')"
-                    ontouchstart="lightOn('btn-up')" ontouchend="lightOff('btn-up')"
-                    onclick="sendControl({shutter: 'up'})">
-                <span class="icon icon-up">▲</span>
-            </button>
-            <button id="btn-down" class="btn-circle" 
-                    onmousedown="lightOn('btn-down')" onmouseup="lightOff('btn-down')"
-                    ontouchstart="lightOn('btn-down')" ontouchend="lightOff('btn-down')"
-                    onclick="sendControl({shutter: 'down'})">
-                <span class="icon icon-down">▼</span>
-            </button>
+    <div id="container-main">
+        <div class="section">
+            <div class="section-title">SHUTTER</div>
+            <div class="button-flow-v">
+                <button id="btn-up" class="btn-circle" 
+                        onmousedown="lightOn('btn-up')" onmouseup="lightOff('btn-up')"
+                        ontouchstart="lightOn('btn-up')" ontouchend="lightOff('btn-up')"
+                        onclick="sendControl({shutter: 'up'})">
+                    <span class="icon icon-up">▲</span>
+                </button>
+                <button id="btn-down" class="btn-circle" 
+                        onmousedown="lightOn('btn-down')" onmouseup="lightOff('btn-down')"
+                        ontouchstart="lightOn('btn-down')" ontouchend="lightOff('btn-down')"
+                        onclick="sendControl({shutter: 'down'})">
+                    <span class="icon icon-down">▼</span>
+                </button>
+            </div>
+            
+            <div class="indicator-container">
+                <div id="shutter-led" class="led-dot shutter-led"></div>
+                <div class="led-label">BUSY</div>
+            </div>
         </div>
-        
-        <div class="indicator-container">
-            <div id="shutter-led" class="led-dot shutter-led"></div>
-            <div class="led-label">BUSY</div>
+
+        <div class="section">
+            <div class="section-title">LIGHT</div>
+            <div class="button-flow-v">
+                <button id="btn-light-toggle" class="btn-circle" 
+                        onmousedown="lightOn('btn-light-toggle')" onmouseup="lightOff('btn-light-toggle')"
+                        ontouchstart="lightOn('btn-light-toggle')" ontouchend="lightOff('btn-light-toggle')"
+                        onclick="toggleLightClick()">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M12 2C7.58 2 4 5.58 4 10c0 2.76 1.4 5.2 3.54 6.64L9 22h6l1.46-5.36C18.6 15.2 20 12.76 20 10c0-4.42-3.58-8-8-8zm1.5 18h-3v-1h3v1zm1.14-2.5h-5.28l-.54-2H15.1l-.46 2zm1.64-3.8l-.66.44-.26.96H8.28l-.26-.97-.66-.44C5.9 13.9 5 12.04 5 10c0-3.86 3.14-7 7-7s7 3.14 7 7c0 2.04-.9 3.9-2.36 5.14zM12 5c-2.76 0-5 2.24-5 5h1c0-2.21 1.79-4 4-4v-1z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="indicator-container">
+                <div id="light-led" class="led-dot light-led"></div>
+                <div class="led-label">ACTIVE</div>
+            </div>
         </div>
     </div>
 
-    <div class="section">
-        <div class="section-title">LIGHT</div>
-        <div class="button-flow-v">
-            <button id="btn-light-toggle" class="btn-circle" 
-                    onmousedown="lightOn('btn-light-toggle')" onmouseup="lightOff('btn-light-toggle')"
-                    ontouchstart="lightOn('btn-light-toggle')" ontouchend="lightOff('btn-light-toggle')"
-                    onclick="toggleLightClick()">
-                <svg class="icon" viewBox="0 0 24 24">
-                    <path d="M12 2C7.58 2 4 5.58 4 10c0 2.76 1.4 5.2 3.54 6.64L9 22h6l1.46-5.36C18.6 15.2 20 12.76 20 10c0-4.42-3.58-8-8-8zm1.5 18h-3v-1h3v1zm1.14-2.5h-5.28l-.54-2H15.1l-.46 2zm1.64-3.8l-.66.44-.26.96H8.28l-.26-.97-.66-.44C5.9 13.9 5 12.04 5 10c0-3.86 3.14-7 7-7s7 3.14 7 7c0 2.04-.9 3.9-2.36 5.14zM12 5c-2.76 0-5 2.24-5 5h1c0-2.21 1.79-4 4-4v-1z"/>
-                </svg>
-            </button>
-        </div>
-
-        <div class="indicator-container">
-            <div id="light-led" class="led-dot light-led"></div>
-            <div class="led-label">ACTIVE</div>
+    <div id="container-extra" class="hidden">
+        <div class="section">
+            <div class="section-title">EXTRA RELAYS</div>
+            <div id="extra-relays-grid" class="relay-grid">
+                </div>
         </div>
     </div>
 </div>
@@ -304,6 +376,8 @@
 <script>
     const targetUrl = 'http://192.168.0.150/';
     let currentLightState = 'off';
+    let currentExtraStates = []; // 追加リレーの状態保持用配列
+    let isGridGenerated = false;  // ボタンの生成重複防止フラグ
 
     getStatus();
     setInterval(getStatus, 1000);
@@ -311,6 +385,53 @@
     // すべてのボタン共通の瞬時発光ロジック
     function lightOn(id) { document.getElementById(id).classList.add('active'); }
     function lightOff(id) { document.getElementById(id).classList.remove('active'); }
+
+    // ★追加：表示画面切り替えロジック
+    function switchView(view) {
+        const btnMain = document.getElementById('view-main');
+        const btnExtra = document.getElementById('view-extra');
+        const conMain = document.getElementById('container-main');
+        const conExtra = document.getElementById('container-extra');
+
+        if (view === 'main') {
+            btnMain.classList.add('active');
+            btnExtra.classList.remove('active');
+            conMain.classList.remove('hidden');
+            conExtra.classList.add('hidden');
+        } else {
+            btnMain.classList.remove('active');
+            btnExtra.classList.add('active');
+            conMain.classList.add('hidden');
+            conExtra.classList.remove('hidden');
+        }
+    }
+
+    // ★追加：Arduinoのレスポンスに基づき、動的にリレーボタン群を組み立てる
+    function generateExtraRelayUI(statesArray) {
+        const grid = document.getElementById('extra-relays-grid');
+        grid.innerHTML = ''; // クリア
+
+        statesArray.forEach((state, index) => {
+            const node = document.createElement('div');
+            node.className = 'relay-node';
+
+            // 1〜8番目の表記
+            const relayNum = index + 1;
+
+            node.innerHTML = `
+                <button id="btn-extra-${index}" class="btn-circle" 
+                        onclick="toggleExtraRelayClick(${index})">
+                    <span class="icon" style="font-size:14px;">CH${relayNum}</span>
+                </button>
+                <div class="indicator-container">
+                    <div id="extra-led-${index}" class="led-dot extra-led"></div>
+                    <div class="led-label">R${relayNum}</div>
+                </div>
+            `;
+            grid.appendChild(node);
+        });
+        isGridGenerated = true;
+    }
 
     async function getStatus() {
         try {
@@ -348,6 +469,21 @@
         sendControl({ light: nextState });
     }
 
+    // ★追加：EXTRAリレーボタンが押された際の個別反転命令
+    function toggleExtraRelayClick(index) {
+        // 現在の状態が 1 なら "off"、0 なら "on" を送る
+        const nextStatus = (currentExtraStates[index] === 1) ? 'off' : 'on';
+        
+        // 物理ボタン風に押した瞬間一瞬光らせる演出
+        lightOn(`btn-extra-${index}`);
+        setTimeout(() => lightOff(`btn-extra-${index}`), 150);
+
+        sendControl({
+            extra_relay_index: index,
+            extra_relay_status: nextStatus
+        });
+    }
+
     function updateSystemStatus(isOnline) {
         const led = document.getElementById('sys-led');
         const label = document.getElementById('sys-label');
@@ -360,6 +496,14 @@
             label.innerText = 'STATUS: OFFLINE';
             document.getElementById('shutter-led').classList.remove('active');
             document.getElementById('light-led').classList.remove('active');
+            
+            // オフライン時は全追加LEDの点灯も消す
+            currentExtraStates.forEach((_, index) => {
+                const ledEx = document.getElementById(`extra-led-${index}`);
+                const btnEx = document.getElementById(`btn-extra-${index}`);
+                if (ledEx) ledEx.classList.remove('active');
+                if (btnEx) btnEx.classList.remove('active');
+            });
         }
     }
 
@@ -378,9 +522,33 @@
 
         // 2. ライト状態（ON/OFF）の緑色LED制御
         if (data.light === 'on') {
-            ledLight.classList.add('active'); // 美しく緑色に常時点灯
+            ledLight.classList.add('active');
         } else {
-            ledLight.classList.remove('active'); // 消灯（深いくすんだ緑）
+            ledLight.classList.remove('active');
+        }
+
+        // 3. ★追加：EXTRAリレーの動的UI生成と状態反映
+        if (data.extra_relays && Array.isArray(data.extra_relays)) {
+            currentExtraStates = data.extra_relays;
+            
+            // 最初の一度だけ、またはピン数が変わった場合のみHTML要素を生成
+            if (!isGridGenerated || document.querySelectorAll('.relay-node').length !== currentExtraStates.length) {
+                generateExtraRelayUI(currentExtraStates);
+            }
+
+            // 個々の状態(1か0か)をLEDとボタン外周のバックライトに同期
+            currentExtraStates.forEach((state, index) => {
+                const ledEx = document.getElementById(`extra-led-${index}`);
+                const btnEx = document.getElementById(`btn-extra-${index}`);
+                
+                if (state === 1) {
+                    if (ledEx) ledEx.classList.add('active'); // インジケーター青点灯
+                    if (btnEx) btnEx.classList.add('active'); // ボタンのバックライト常時Glow
+                } else {
+                    if (ledEx) ledEx.classList.remove('active');
+                    if (btnEx) btnEx.classList.remove('active');
+                }
+            });
         }
     }
 </script>

@@ -13,6 +13,7 @@
             --glow-blue: #00bcd4;   /* 青色バックライト / オンライン */
             --glow-red: #ff1744;    /* シャッター動作中（赤） */
             --glow-green: #00e676;  /* ライトONインジケーター（緑） */
+            --glow-yellow: #ffb300; /* 接続中（黄） */
             --etched-black: #1a1a1a; /* 彫り込みのマットブラック */
         }
         
@@ -54,7 +55,7 @@
             text-align: center;
         }
 
-        /* メメインステータス（ONLINE）ランプ */
+        /* メインステータス（ONLINE）ランプ */
         .system-status {
             display: inline-flex;
             align-items: center;
@@ -83,6 +84,13 @@
             background-color: #ff1744;
             border-color: #ffb3b3;
             box-shadow: 0 0 8px 1px var(--glow-red);
+        }
+        /* ★ 接続中（点滅）用スタイル */
+        .status-led.connecting {
+            background-color: #ffc107;
+            border-color: #ffe082;
+            box-shadow: 0 0 8px 1px var(--glow-yellow);
+            animation: status-blink 0.8s infinite alternate;
         }
         .status-label-main {
             font-size: 10px;
@@ -226,9 +234,7 @@
             transform: translateY(2px);
         }
 
-        /* ==========================================
-         * 青色バックライト発光（Glow）※すべてのボタン共通
-         * ========================================== */
+        /* 青色バックライト発光（Glow） */
         .btn-circle.active {
             border-color: var(--glow-blue);
             box-shadow: 
@@ -243,9 +249,7 @@
             text-shadow: 0 0 6px var(--glow-blue), 0 0 15px var(--glow-blue);
         }
 
-        /* ==========================================
-         * 埋め込み型 小型LEDインジケーター共通スタイル
-         * ========================================== */
+        /* 埋め込み型 小型LEDインジケーター共通スタイル */
         .indicator-container {
             margin-top: 15px;
             display: flex;
@@ -300,6 +304,12 @@
             100% { opacity: 1; }
         }
 
+        /* ★ STATUS接続中用のアニメーション */
+        @keyframes status-blink {
+            0% { opacity: 0.2; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1.1); }
+        }
+
         /* 表示切り替え用ユーティリティ */
         .hidden {
             display: none !important;
@@ -311,7 +321,8 @@
 <div class="panel">
     
     <div class="system-status">
-        <div id="sys-led" class="status-led"></div>
+        <!-- 初期表示時は connecting クラスを付与 -->
+        <div id="sys-led" class="status-led connecting"></div>
         <div id="sys-label" class="status-label-main">CONNECTING...</div>
     </div>
 
@@ -368,7 +379,7 @@
         <div class="section">
             <div class="section-title">EXTRA RELAYS</div>
             <div id="extra-relays-grid" class="relay-grid">
-                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -379,14 +390,14 @@
     let currentExtraStates = []; 
     let isGridGenerated = false;  
 
+    // 初期起動時にも接続中アニメーションを適用
+    setConnectingState();
     getStatus();
     setInterval(getStatus, 1000);
 
-    // すべてのボタン共通の瞬時発光ロジック
     function lightOn(id) { document.getElementById(id).classList.add('active'); }
     function lightOff(id) { document.getElementById(id).classList.remove('active'); }
 
-    // 表示画面切り替えロジック
     function switchView(view) {
         const btnMain = document.getElementById('view-main');
         const btnExtra = document.getElementById('view-extra');
@@ -406,7 +417,6 @@
         }
     }
 
-    // Arduinoのレスポンスに基づき、動的にリレーボタン群を組み立てる
     function generateExtraRelayUI(statesArray) {
         const grid = document.getElementById('extra-relays-grid');
         grid.innerHTML = ''; 
@@ -416,7 +426,6 @@
             node.className = 'relay-node';
             const relayNum = index + 1;
 
-            // ★修正: PCクリック(mousedown/up)とスマホタップ(touchstart/end)での瞬時発光イベントを追加
             node.innerHTML = `
                 <button id="btn-extra-${index}" class="btn-circle" 
                         onmousedown="lightOn('btn-extra-${index}')" onmouseup="lightOff('btn-extra-${index}')"
@@ -434,6 +443,14 @@
         isGridGenerated = true;
     }
 
+    // 接続中の状態を適用する関数
+    function setConnectingState() {
+        const led = document.getElementById('sys-led');
+        const label = document.getElementById('sys-label');
+        led.className = 'status-led connecting';
+        label.innerText = 'CONNECTING...';
+    }
+
     async function getStatus() {
         try {
             const response = await fetch(targetUrl, { method: 'GET', mode: 'cors' });
@@ -448,6 +465,8 @@
     }
 
     async function sendControl(commandObj) {
+        // コマンド送信時も一時的に接続中状態（黄点滅）を表示
+        setConnectingState();
         try {
             const response = await fetch(targetUrl, {
                 method: 'POST',
@@ -470,11 +489,9 @@
         sendControl({ light: nextState });
     }
 
-    // EXTRAリレーボタンが押された際の個別反転命令
     function toggleExtraRelayClick(index) {
         const nextStatus = (currentExtraStates[index] === 1) ? 'off' : 'on';
         
-        // ★変更: タップした瞬間だけ150msだけ青く瞬時発光させる演出（念のためのタイマー補正）
         lightOn(`btn-extra-${index}`);
         setTimeout(() => lightOff(`btn-extra-${index}`), 150);
 
@@ -512,21 +529,18 @@
         
         currentLightState = data.light;
 
-        // 1. シャッター動作中（BUSY）の赤色LED制御
         if (data.shutter === 'moving') {
             ledShutter.classList.add('active');
         } else {
             ledShutter.classList.remove('active');
         }
 
-        // 2. ライト状態（ON/OFF）の緑色LED制御
         if (data.light === 'on') {
             ledLight.classList.add('active');
         } else {
             ledLight.classList.remove('active');
         }
 
-        // 3. EXTRAリレーの動的UI生成と状態反映
         if (data.extra_relays && Array.isArray(data.extra_relays)) {
             currentExtraStates = data.extra_relays;
             
@@ -534,12 +548,11 @@
                 generateExtraRelayUI(currentExtraStates);
             }
 
-            // ★変更: 個々の状態(1か0か)を「LEDインジケーター」のみに同期させ、ボタンは常時連動から除外
             currentExtraStates.forEach((state, index) => {
                 const ledEx = document.getElementById(`extra-led-${index}`);
                 
                 if (state === 1) {
-                    if (ledEx) ledEx.classList.add('active'); // インジケーター青点灯のみ
+                    if (ledEx) ledEx.classList.add('active');
                 } else {
                     if (ledEx) ledEx.classList.remove('active');
                 }

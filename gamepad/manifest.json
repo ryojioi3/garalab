@@ -1,7 +1,7 @@
 {
-  "id": "/garalab/controller/",
-  "name": "投影ゲーム用コントローラー",
-  "short_name": "WebPad",
+  "id": "gemepad"
+  "name": "gemepad",
+  "short_name": "gemepad",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

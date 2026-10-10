@@ -1,4 +1,5 @@
 {
+  "id": "garage"
   "short_name": "garage",
   "name": "garage controller",
   "display": "standalone",

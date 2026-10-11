@@ -1,5 +1,7 @@
 {
-  "id": "garage",
+  "id": "/garalab/",
+  "start_url": "/garalab/",
+  "scope": "/garalab/",
   "short_name": "garage",
   "name": "garage controller",
   "display": "standalone",

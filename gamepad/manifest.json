@@ -1,5 +1,7 @@
 {
-  "id": "gemepad"
+  "id": "/garalab/gamepad/",
+ "start_url": "/garalab/gamepad/",
+  "scope": "/garalab/gamepad/",
   "name": "gemepad",
   "short_name": "gemepad",
   "start_url": "./",

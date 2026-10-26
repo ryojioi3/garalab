@@ -2,8 +2,9 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>WebPad Controller</title>
+    
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#080c14">
@@ -20,17 +21,17 @@
     <style>
         * {
             touch-action: none;
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Allow standard touch interactions for UI controls */
-        header, header *, #settings-panel, #settings-panel * {
+        /* ヘッダー・設定パネル内の要素は標準のタップ動作・テキスト入力を許可 */
+        header, #settings-panel, input, button {
             touch-action: auto !important;
-            -webkit-user-select: auto !important;
-            user-select: auto !important;
+            -webkit-user-select: auto;
+            user-select: auto;
         }
 
         body {
@@ -39,8 +40,24 @@
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             height: 100vh;
+            height: 100dvh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
+        }
+
+        /* iOS Safari等用 疑似フルスクリーンフォールバック */
+        .pseudo-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            z-index: 99999 !important;
+            background-color: #080c14 !important;
         }
 
         .led-indicator {
@@ -118,17 +135,15 @@
             background: linear-gradient(145deg, #3b82f6, #2563eb);
         }
 
-        .action-btn-start {
+        .action-btn-center {
             background: linear-gradient(145deg, #334155, #1e293b);
-            border: 1.5px solid #64748b;
+            border: 1px solid #64748b;
             box-shadow: 0 4px 0 #0f172a, 0 4px 10px rgba(0, 0, 0, 0.5);
-            transition: all 0.05s ease;
         }
-        .action-btn-start:active, .action-btn-start.active {
-            transform: translateY(3px);
-            box-shadow: 0 1px 0 #0f172a, 0 0 15px rgba(100, 116, 139, 0.6);
+        .action-btn-center:active, .action-btn-center.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #0f172a, 0 0 12px rgba(148, 163, 184, 0.6);
             background: linear-gradient(145deg, #475569, #334155);
-            border-color: #94a3b8;
         }
 
         .bg-grid {
@@ -141,8 +156,8 @@
 </head>
 <body class="bg-grid p-2 sm:p-4">
 
-    <!-- Top Bar Header -->
-    <header id="top-bar" class="w-full bg-slate-900/80 backdrop-blur-md rounded-2xl p-2 sm:p-3 border border-slate-800 flex flex-wrap items-center justify-between gap-2 z-30 shadow-lg">
+    <!-- Top Bar -->
+    <header class="w-full bg-slate-900/80 backdrop-blur-md rounded-2xl p-2 sm:p-3 border border-slate-800 flex flex-wrap items-center justify-between gap-2 z-30 shadow-lg">
         <div class="flex items-center gap-2">
             <span id="led" class="w-3.5 h-3.5 rounded-full led-indicator led-disconnected inline-block transition-all"></span>
             <span id="status-text" class="text-xs sm:text-sm font-semibold tracking-wide text-slate-300">未接続</span>
@@ -154,13 +169,13 @@
         </div>
 
         <div class="flex items-center gap-1.5 ml-auto">
-            <button id="toggle-audio-btn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition active:scale-95" title="サウンド切替">
+            <button id="toggle-audio-btn" type="button" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 text-xs flex items-center justify-center transition cursor-pointer" title="サウンド切替">
                 <i class="fa-solid fa-volume-high" id="audio-icon"></i>
             </button>
-            <button id="fullscreen-btn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition active:scale-95" title="全画面表示">
-                <i class="fa-solid fa-expand"></i>
+            <button id="fullscreen-btn" type="button" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 text-xs flex items-center justify-center transition cursor-pointer" title="全画面表示">
+                <i class="fa-solid fa-expand" id="fullscreen-icon"></i>
             </button>
-            <button id="toggle-settings-btn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 transition active:scale-95">
+            <button id="toggle-settings-btn" type="button" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 text-xs flex items-center gap-1 transition cursor-pointer">
                 <i class="fa-solid fa-gear"></i>
             </button>
         </div>
@@ -173,10 +188,10 @@
             <input type="text" id="server-url-input" value="ws://192.168.0.3:8765" 
                    class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-mono">
             <div class="flex gap-2 w-full sm:w-auto">
-                <button id="connect-btn" type="button" class="flex-1 sm:flex-none px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs rounded-lg transition shadow-md active:scale-95 whitespace-nowrap">
+                <button id="connect-btn" type="button" class="flex-1 sm:flex-none px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs rounded-lg transition shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
                     接続 / 再接続
                 </button>
-                <button id="toggle-log-btn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">
+                <button id="toggle-log-btn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition cursor-pointer">
                     ログ
                 </button>
             </div>
@@ -204,38 +219,36 @@
             </div>
         </div>
 
-        <!-- Center Controls (Start Button Area) -->
-        <div class="flex flex-row md:flex-col items-center justify-center gap-4 my-auto py-2">
-            <div class="hidden lg:flex flex-col items-center opacity-30 pointer-events-none mb-2">
-                <i class="fa-solid fa-gamepad text-4xl text-slate-500 mb-1"></i>
-                <span class="text-[10px] tracking-widest uppercase font-mono text-slate-400">WEBPAD CONTROLLER</span>
-            </div>
+        <!-- Center Controls (SELECT / START) -->
+        <div class="flex items-center justify-center gap-3 my-auto z-20">
+            <!-- SELECT Button -->
+            <button data-button="SELECT" type="button"
+                    class="action-btn-center px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex flex-col items-center justify-center text-slate-200 transition cursor-pointer select-none">
+                <span class="text-xs sm:text-sm font-bold tracking-wider">SELECT</span>
+            </button>
 
-            <div class="flex items-center gap-3 bg-slate-900/40 p-2.5 rounded-2xl border border-slate-800/80 shadow-inner">
-                <!-- Start Button -->
-                <button data-button="START" type="button"
-                        class="action-btn-start px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-slate-200 font-bold text-xs tracking-wider select-none active:scale-95 transition-transform">
-                    <i class="fa-solid fa-play text-[10px] text-emerald-400 pointer-events-none"></i>
-                    <span class="pointer-events-none">START</span>
-                </button>
-            </div>
+            <!-- START Button -->
+            <button data-button="START" type="button"
+                    class="action-btn-center px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex flex-col items-center justify-center text-slate-200 transition cursor-pointer select-none">
+                <span class="text-xs sm:text-sm font-bold tracking-wider">START</span>
+            </button>
         </div>
 
-        <!-- Action Buttons (A & B) -->
+        <!-- Action Buttons -->
         <div class="relative w-48 h-48 sm:w-60 sm:h-60 flex items-center justify-center my-auto">
             <div class="absolute inset-0 rounded-full border border-slate-800/80 bg-slate-950/40 pointer-events-none shadow-inner"></div>
 
             <div class="relative w-full h-full">
                 <button data-button="B" type="button"
-                        class="action-btn-b absolute left-2 bottom-6 sm:left-4 sm:bottom-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none">
-                    <span class="pointer-events-none">B</span>
-                    <span class="text-[9px] font-normal tracking-tight text-blue-200 opacity-80 uppercase pointer-events-none">SUB</span>
+                        class="action-btn-b absolute left-2 bottom-4 sm:left-4 sm:bottom-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none cursor-pointer">
+                    <span>B</span>
+                    <span class="text-[9px] font-normal tracking-tight text-blue-200 opacity-80 uppercase">SUB</span>
                 </button>
 
                 <button data-button="A" type="button"
-                        class="action-btn-a absolute right-2 top-6 sm:right-4 sm:top-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none">
-                    <span class="pointer-events-none">A</span>
-                    <span class="text-[9px] font-normal tracking-tight text-red-200 opacity-80 uppercase pointer-events-none">ACTION</span>
+                        class="action-btn-a absolute right-2 top-4 sm:right-4 sm:top-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none cursor-pointer">
+                    <span>A</span>
+                    <span class="text-[9px] font-normal tracking-tight text-red-200 opacity-80 uppercase">ACTION</span>
                 </button>
             </div>
         </div>
@@ -283,6 +296,7 @@
         const toggleAudioBtn = document.getElementById("toggle-audio-btn");
         const audioIcon = document.getElementById("audio-icon");
         const fullscreenBtn = document.getElementById("fullscreen-btn");
+        const fullscreenIcon = document.getElementById("fullscreen-icon");
 
         const joystickContainer = document.getElementById("joystick-container");
         const joystickKnob = document.getElementById("joystick-knob");
@@ -294,12 +308,11 @@
         };
 
         let audioCtx = null;
-
         function initAudioContext() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (audioCtx && audioCtx.state === 'suspended') {
+            if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
         }
@@ -308,8 +321,6 @@
             if (!isAudioEnabled) return;
             try {
                 initAudioContext();
-                if (!audioCtx || audioCtx.state !== 'running') return;
-
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = type;
@@ -563,16 +574,15 @@
         const activeActionButtons = new Set();
 
         function handleActionTouchState(e) {
-            // HeaderやSettingsPanelのUI要素が操作された場合はイベントをブロックせずそのまま通す
-            const targetElElement = document.elementFromPoint(
-                e.touches && e.touches.length ? e.touches[0].clientX : 0,
-                e.touches && e.touches.length ? e.touches[0].clientY : 0
-            );
-            if (targetElElement && targetElElement.closest('header, #settings-panel, input, button:not([data-button])')) {
+            const target = e.target;
+            if (target && target.closest('header, #settings-panel, input, button:not([data-button])')) {
                 return;
             }
 
-            e.preventDefault();
+            if (e.type === 'touchstart' || e.type === 'touchmove') {
+                e.preventDefault();
+            }
+
             initAudioContext();
             const currentTouches = new Set();
 
@@ -598,10 +608,12 @@
 
                     if (navigator.vibrate) navigator.vibrate(CONFIG.vibrateDuration);
                     
-                    if (btnName === 'A') playBeep(620, 'square');
-                    else if (btnName === 'B') playBeep(480, 'square');
-                    else if (btnName === 'START') playBeep(550, 'sine');
-                    else playBeep(440, 'sine');
+                    let soundFreq = 480;
+                    if (btnName === 'A') soundFreq = 620;
+                    else if (btnName === 'START') soundFreq = 550;
+                    else if (btnName === 'SELECT') soundFreq = 420;
+                    
+                    playBeep(soundFreq, btnName === 'START' || btnName === 'SELECT' ? 'sine' : 'square');
                 }
             }
 
@@ -625,11 +637,9 @@
         window.addEventListener("touchmove", handleActionTouchState, { passive: false });
         window.addEventListener("touchend", handleActionTouchState, { passive: false });
 
-        // Header Control Buttons Direct Handlers
         toggleSettingsBtn.addEventListener("click", (e) => {
             e.stopPropagation();
             settingsPanel.classList.toggle("hidden");
-            log("設定パネル表示切替");
         });
 
         toggleLogBtn.addEventListener("click", (e) => {
@@ -644,51 +654,75 @@
 
         toggleAudioBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            initAudioContext();
             isAudioEnabled = !isAudioEnabled;
             if (isAudioEnabled) {
                 audioIcon.className = "fa-solid fa-volume-high";
                 toggleAudioBtn.classList.remove("text-red-400");
                 playBeep(520, 'sine');
-                log("サウンド: ON");
             } else {
                 audioIcon.className = "fa-solid fa-volume-xmark";
                 toggleAudioBtn.classList.add("text-red-400");
-                log("サウンド: OFF");
             }
         });
 
+        // モバイル（iOS Safari含む）全画面切り替え処理
         fullscreenBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            log("全画面表示ボタンがクリックされました");
-
+            initAudioContext();
+            
             const docEl = document.documentElement;
-            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            const isFullScreen = document.fullscreenElement || 
+                                 document.webkitFullscreenElement || 
+                                 document.mozFullScreenElement ||
+                                 document.msFullscreenElement ||
+                                 docEl.classList.contains("pseudo-fullscreen");
 
-            if (!isFullscreen) {
+            if (!isFullScreen) {
+                // 標準 API
                 if (docEl.requestFullscreen) {
-                    docEl.requestFullscreen();
-                } else if (docEl.webkitRequestFullscreen) { /* Safari / iOS */
+                    docEl.requestFullscreen().catch(() => enablePseudoFullscreen());
+                } else if (docEl.webkitRequestFullscreen) { // iOS / Safari
                     docEl.webkitRequestFullscreen();
-                } else if (docEl.mozRequestFullScreen) { /* Firefox */
-                    docEl.mozRequestFullScreen();
-                } else if (docEl.msRequestFullscreen) { /* IE/Edge */
+                } else if (docEl.msRequestFullscreen) {
                     docEl.msRequestFullscreen();
                 } else {
-                    log("お使いのブラウザは全画面表示をサポートしていません", true);
+                    enablePseudoFullscreen();
                 }
             } else {
                 if (document.exitFullscreen) {
-                    document.exitFullscreen();
+                    document.exitFullscreen().catch(() => {});
                 } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
                 } else if (document.msExitFullscreen) {
                     document.msExitFullscreen();
                 }
+                disablePseudoFullscreen();
             }
         });
+
+        function enablePseudoFullscreen() {
+            document.documentElement.classList.add("pseudo-fullscreen");
+            fullscreenIcon.className = "fa-solid fa-compress";
+            log("疑似フルスクリーン有効化");
+        }
+
+        function disablePseudoFullscreen() {
+            document.documentElement.classList.remove("pseudo-fullscreen");
+            fullscreenIcon.className = "fa-solid fa-expand";
+            log("フルスクリーン解除");
+        }
+
+        document.addEventListener("fullscreenchange", updateFullscreenIcon);
+        document.addEventListener("webkitfullscreenchange", updateFullscreenIcon);
+
+        function updateFullscreenIcon() {
+            const isFS = document.fullscreenElement || document.webkitFullscreenElement;
+            if (isFS) {
+                fullscreenIcon.className = "fa-solid fa-compress";
+            } else {
+                fullscreenIcon.className = "fa-solid fa-expand";
+            }
+        }
 
         // Service Worker Registration for PWA
         if ('serviceWorker' in navigator) {

@@ -1,605 +1,710 @@
-<!-- PWA Settings -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#080c14">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="WebPad">
-<link rel="apple-touch-icon" href="icon-192.png">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WebPad Controller</title>
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#080c14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WebPad">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- FontAwesome Icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<style>
-    * {
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        user-select: none !important;
-        -webkit-tap-highlight-color: transparent;
-    }
+    <style>
+        * {
+            touch-action: none;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    body {
-        background-color: #080c14;
-        color: #f3f4f6;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        overflow: hidden;
-    }
+        /* Allow standard touch interactions for UI controls */
+        header, header *, #settings-panel, #settings-panel * {
+            touch-action: auto !important;
+            -webkit-user-select: auto !important;
+            user-select: auto !important;
+        }
 
-    .led-indicator {
-        box-shadow: 0 0 8px currentColor;
-    }
-    .led-disconnected { color: #ef4444; background-color: #ef4444; }
-    .led-connecting {
-        color: #eab308;
-        background-color: #eab308;
-        animation: pulse-led 1s infinite alternate;
-    }
-    .led-connected {
-        color: #22c55e;
-        background-color: #22c55e;
-        box-shadow: 0 0 12px #22c55e;
-    }
+        body {
+            background-color: #080c14;
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-    @keyframes pulse-led {
-        0% { opacity: 0.3; transform: scale(0.9); }
-        100% { opacity: 1; transform: scale(1.1); }
-    }
+        .led-indicator {
+            box-shadow: 0 0 8px currentColor;
+        }
+        .led-disconnected { color: #ef4444; background-color: #ef4444; }
+        .led-connecting {
+            color: #eab308;
+            background-color: #eab308;
+            animation: pulse-led 1s infinite alternate;
+        }
+        .led-connected {
+            color: #22c55e;
+            background-color: #22c55e;
+            box-shadow: 0 0 12px #22c55e;
+        }
 
-    .player-theme-p1 { color: #ef4444; border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
-    .player-theme-p2 { color: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
-    .player-theme-p3 { color: #eab308; border-color: #eab308; box-shadow: 0 0 12px rgba(234, 179, 8, 0.4); }
-    .player-theme-p4 { color: #22c55e; border-color: #22c55e; box-shadow: 0 0 12px rgba(34, 197, 94, 0.4); }
+        @keyframes pulse-led {
+            0% { opacity: 0.3; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1.1); }
+        }
 
-    .joystick-base {
-        background: radial-gradient(circle, #1a2336 0%, #0d1322 100%);
-        border: 3px solid rgba(255, 255, 255, 0.1);
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 8px 25px rgba(0, 0, 0, 0.6);
-    }
+        .player-theme-p1 { color: #ef4444; border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+        .player-theme-p2 { color: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
+        .player-theme-p3 { color: #eab308; border-color: #eab308; box-shadow: 0 0 12px rgba(234, 179, 8, 0.4); }
+        .player-theme-p4 { color: #22c55e; border-color: #22c55e; box-shadow: 0 0 12px rgba(34, 197, 94, 0.4); }
 
-    .joystick-knob {
-        background: radial-gradient(circle, #38bdf8 0%, #0284c7 70%, #0369a1 100%);
-        border: 2px solid #7dd3fc;
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.5);
-        transition: background 0.1s ease;
-    }
+        .joystick-base {
+            background: radial-gradient(circle, #1a2336 0%, #0d1322 100%);
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 8px 25px rgba(0, 0, 0, 0.6);
+        }
 
-    .joystick-knob.active {
-        background: radial-gradient(circle, #38bdf8 0%, #0284c7 50%, #0e7490 100%);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.9);
-    }
+        .joystick-knob {
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 70%, #0369a1 100%);
+            border: 2px solid #7dd3fc;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.5);
+            transition: background 0.1s ease;
+        }
 
-    .dir-arrow {
-        color: rgba(255, 255, 255, 0.2);
-        transition: all 0.1s ease;
-    }
-    .dir-arrow.active {
-        color: #38bdf8;
-        text-shadow: 0 0 12px #38bdf8, 0 0 20px #0284c7;
-        transform: scale(1.25);
-    }
+        .joystick-knob.active {
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 50%, #0e7490 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.9);
+        }
 
-    .action-btn-a {
-        background: linear-gradient(145deg, #dc2626, #991b1b);
-        border: 2px solid #f87171;
-        box-shadow: 0 6px 0 #7f1d1d, 0 8px 15px rgba(239, 68, 68, 0.4);
-    }
-    .action-btn-a:active, .action-btn-a.active {
-        transform: translateY(4px);
-        box-shadow: 0 2px 0 #7f1d1d, 0 0 20px rgba(239, 68, 68, 0.8);
-        background: linear-gradient(145deg, #ef4444, #dc2626);
-    }
+        .dir-arrow {
+            color: rgba(255, 255, 255, 0.2);
+            transition: all 0.1s ease;
+        }
+        .dir-arrow.active {
+            color: #38bdf8;
+            text-shadow: 0 0 12px #38bdf8, 0 0 20px #0284c7;
+            transform: scale(1.25);
+        }
 
-    .action-btn-b {
-        background: linear-gradient(145deg, #2563eb, #1e40af);
-        border: 2px solid #60a5fa;
-        box-shadow: 0 6px 0 #1e3a8a, 0 8px 15px rgba(59, 130, 246, 0.4);
-    }
-    .action-btn-b:active, .action-btn-b.active {
-        transform: translateY(4px);
-        box-shadow: 0 2px 0 #1e3a8a, 0 0 20px rgba(59, 130, 246, 0.8);
-        background: linear-gradient(145deg, #3b82f6, #2563eb);
-    }
+        .action-btn-a {
+            background: linear-gradient(145deg, #dc2626, #991b1b);
+            border: 2px solid #f87171;
+            box-shadow: 0 6px 0 #7f1d1d, 0 8px 15px rgba(239, 68, 68, 0.4);
+        }
+        .action-btn-a:active, .action-btn-a.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #7f1d1d, 0 0 20px rgba(239, 68, 68, 0.8);
+            background: linear-gradient(145deg, #ef4444, #dc2626);
+        }
 
-    .bg-grid {
-        background-size: 32px 32px;
-        background-image: 
-            linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    }
-</style>
+        .action-btn-b {
+            background: linear-gradient(145deg, #2563eb, #1e40af);
+            border: 2px solid #60a5fa;
+            box-shadow: 0 6px 0 #1e3a8a, 0 8px 15px rgba(59, 130, 246, 0.4);
+        }
+        .action-btn-b:active, .action-btn-b.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #1e3a8a, 0 0 20px rgba(59, 130, 246, 0.8);
+            background: linear-gradient(145deg, #3b82f6, #2563eb);
+        }
 
+        .action-btn-start {
+            background: linear-gradient(145deg, #334155, #1e293b);
+            border: 1.5px solid #64748b;
+            box-shadow: 0 4px 0 #0f172a, 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.05s ease;
+        }
+        .action-btn-start:active, .action-btn-start.active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #0f172a, 0 0 15px rgba(100, 116, 139, 0.6);
+            background: linear-gradient(145deg, #475569, #334155);
+            border-color: #94a3b8;
+        }
 
-<!-- Top Bar -->
-<header class="w-full bg-slate-900/80 backdrop-blur-md rounded-2xl p-2 sm:p-3 border border-slate-800 flex flex-wrap items-center justify-between gap-2 z-30 shadow-lg">
-    <div class="flex items-center gap-2">
-        <span id="led" class="w-3.5 h-3.5 rounded-full led-indicator led-disconnected inline-block transition-all"></span>
-        <span id="status-text" class="text-xs sm:text-sm font-semibold tracking-wide text-slate-300">未接続</span>
-    </div>
+        .bg-grid {
+            background-size: 32px 32px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-grid p-2 sm:p-4">
 
-    <div id="player-badge" class="px-3 py-1 rounded-full border border-slate-700 bg-slate-950 text-xs sm:text-sm font-bold tracking-wider text-slate-400 flex items-center gap-1.5 transition-all">
-        <i class="fa-solid fa-gamepad text-slate-500"></i>
-        <span id="player-name">STANDBY</span>
-    </div>
+    <!-- Top Bar Header -->
+    <header id="top-bar" class="w-full bg-slate-900/80 backdrop-blur-md rounded-2xl p-2 sm:p-3 border border-slate-800 flex flex-wrap items-center justify-between gap-2 z-30 shadow-lg">
+        <div class="flex items-center gap-2">
+            <span id="led" class="w-3.5 h-3.5 rounded-full led-indicator led-disconnected inline-block transition-all"></span>
+            <span id="status-text" class="text-xs sm:text-sm font-semibold tracking-wide text-slate-300">未接続</span>
+        </div>
 
-    <div class="flex items-center gap-1.5 ml-auto">
-        <button id="toggle-audio-btn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition" title="サウンド切替">
-            <i class="fa-solid fa-volume-high" id="audio-icon"></i>
-        </button>
-        <button id="fullscreen-btn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition" title="全画面表示">
-            <i class="fa-solid fa-expand"></i>
-        </button>
-        <button id="toggle-settings-btn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 transition">
-            <i class="fa-solid fa-gear"></i>
-        </button>
-    </div>
-</header>
+        <div id="player-badge" class="px-3 py-1 rounded-full border border-slate-700 bg-slate-950 text-xs sm:text-sm font-bold tracking-wider text-slate-400 flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-gamepad text-slate-500"></i>
+            <span id="player-name">STANDBY</span>
+        </div>
 
-<!-- Settings Drawer -->
-<div id="settings-panel" class="hidden w-full bg-slate-900/95 backdrop-blur-md border border-slate-700/60 rounded-xl p-3 my-2 z-30 transition-all shadow-2xl">
-    <div class="flex flex-col sm:flex-row items-center gap-2">
-        <label class="text-xs font-medium text-slate-400 whitespace-nowrap">サーバーURL:</label>
-        <input type="text" id="server-url-input" value="ws://192.168.0.3:8765" 
-               class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-mono">
-        <div class="flex gap-2 w-full sm:w-auto">
-            <button id="connect-btn" class="flex-1 sm:flex-none px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs rounded-lg transition shadow-md active:scale-95 whitespace-nowrap">
-                接続 / 再接続
+        <div class="flex items-center gap-1.5 ml-auto">
+            <button id="toggle-audio-btn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition active:scale-95" title="サウンド切替">
+                <i class="fa-solid fa-volume-high" id="audio-icon"></i>
             </button>
-            <button id="toggle-log-btn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">
-                ログ
+            <button id="fullscreen-btn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition active:scale-95" title="全画面表示">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+            <button id="toggle-settings-btn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 transition active:scale-95">
+                <i class="fa-solid fa-gear"></i>
             </button>
         </div>
-    </div>
-    <div id="log-container" class="hidden mt-2 p-2 bg-black/80 rounded-lg border border-slate-800 h-20 overflow-y-auto text-[10px] font-mono text-emerald-400">
-        <div>[System] Web Controller PWA Initialized.</div>
-    </div>
-</div>
+    </header>
 
-<!-- Main Controller Layout -->
-<main class="flex-1 w-full flex flex-col md:flex-row items-center justify-between p-2 sm:p-6 gap-4 relative z-10 my-auto">
-    <!-- Joystick -->
-    <div class="relative flex items-center justify-center my-auto">
-        <div id="joystick-container" class="joystick-base relative w-52 h-52 sm:w-60 sm:h-60 rounded-full flex items-center justify-center touch-none">
-            <i id="arrow-up" class="fa-solid fa-caret-up dir-arrow absolute top-3 text-2xl pointer-events-none"></i>
-            <i id="arrow-down" class="fa-solid fa-caret-down dir-arrow absolute bottom-3 text-2xl pointer-events-none"></i>
-            <i id="arrow-left" class="fa-solid fa-caret-left dir-arrow absolute left-3 text-2xl pointer-events-none"></i>
-            <i id="arrow-right" class="fa-solid fa-caret-right dir-arrow absolute right-3 text-2xl pointer-events-none"></i>
-
-            <div class="w-16 h-16 rounded-full border border-slate-700/50 pointer-events-none absolute"></div>
-
-            <div id="joystick-knob" class="joystick-knob absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center cursor-pointer pointer-events-none transform translate-x-0 translate-y-0">
-                <div class="w-8 h-8 rounded-full border border-sky-200/40 bg-sky-400/20"></div>
+    <!-- Settings Drawer -->
+    <div id="settings-panel" class="hidden w-full bg-slate-900/95 backdrop-blur-md border border-slate-700/60 rounded-xl p-3 my-2 z-30 transition-all shadow-2xl">
+        <div class="flex flex-col sm:flex-row items-center gap-2">
+            <label class="text-xs font-medium text-slate-400 whitespace-nowrap">サーバーURL:</label>
+            <input type="text" id="server-url-input" value="ws://192.168.0.3:8765" 
+                   class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-mono">
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button id="connect-btn" type="button" class="flex-1 sm:flex-none px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs rounded-lg transition shadow-md active:scale-95 whitespace-nowrap">
+                    接続 / 再接続
+                </button>
+                <button id="toggle-log-btn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">
+                    ログ
+                </button>
             </div>
         </div>
-    </div>
-
-    <div class="hidden lg:flex flex-col items-center opacity-30 pointer-events-none">
-        <i class="fa-solid fa-gamepad text-5xl text-slate-500 mb-2"></i>
-        <span class="text-xs tracking-widest uppercase font-mono text-slate-400">ANALOG JOYSTICK CONTROLLER</span>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="relative w-48 h-48 sm:w-60 sm:h-60 flex items-center justify-center my-auto">
-        <div class="absolute inset-0 rounded-full border border-slate-800/80 bg-slate-950/40 pointer-events-none shadow-inner"></div>
-
-        <div class="relative w-full h-full">
-            <button data-button="B" 
-                    class="action-btn-b absolute left-2 bottom-6 sm:left-4 sm:bottom-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none">
-                <span>B</span>
-                <span class="text-[9px] font-normal tracking-tight text-blue-200 opacity-80 uppercase">SUB</span>
-            </button>
-
-            <button data-button="A" 
-                    class="action-btn-a absolute right-2 top-6 sm:right-4 sm:top-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none">
-                <span>A</span>
-                <span class="text-[9px] font-normal tracking-tight text-red-200 opacity-80 uppercase">ACTION</span>
-            </button>
+        <div id="log-container" class="hidden mt-2 p-2 bg-black/80 rounded-lg border border-slate-800 h-20 overflow-y-auto text-[10px] font-mono text-emerald-400">
+            <div>[System] Web Controller PWA Initialized.</div>
         </div>
     </div>
-</main>
 
-<footer class="w-full text-center py-1 text-[10px] text-slate-600 font-mono tracking-wider z-10">
-    PWA MODE &bull; CONTINUOUS INPUT LOOP ENABLED
-</footer>
+    <!-- Main Controller Layout -->
+    <main class="flex-1 w-full flex flex-col md:flex-row items-center justify-between p-2 sm:p-6 gap-4 relative z-10 my-auto">
+        <!-- Joystick -->
+        <div class="relative flex items-center justify-center my-auto">
+            <div id="joystick-container" class="joystick-base relative w-48 h-48 sm:w-60 sm:h-60 rounded-full flex items-center justify-center touch-none">
+                <i id="arrow-up" class="fa-solid fa-caret-up dir-arrow absolute top-3 text-2xl pointer-events-none"></i>
+                <i id="arrow-down" class="fa-solid fa-caret-down dir-arrow absolute bottom-3 text-2xl pointer-events-none"></i>
+                <i id="arrow-left" class="fa-solid fa-caret-left dir-arrow absolute left-3 text-2xl pointer-events-none"></i>
+                <i id="arrow-right" class="fa-solid fa-caret-right dir-arrow absolute right-3 text-2xl pointer-events-none"></i>
 
-<script>
-    const CONFIG = {
-        defaultUrl: "ws://192.168.0.3:8765",
-        reconnectInterval: 3000,
-        vibrateDuration: 15,
-        joystickSendIntervalMs: 50,
-        deadzonePx: 18
-    };
+                <div class="w-16 h-16 rounded-full border border-slate-700/50 pointer-events-none absolute"></div>
 
-    let ws = null;
-    let reconnectTimer = null;
-    let isAudioEnabled = true;
+                <div id="joystick-knob" class="joystick-knob absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center cursor-pointer pointer-events-none transform translate-x-0 translate-y-0">
+                    <div class="w-8 h-8 rounded-full border border-sky-200/40 bg-sky-400/20"></div>
+                </div>
+            </div>
+        </div>
 
-    let joystickTouchId = null;
-    let joystickCenter = { x: 0, y: 0 };
-    let currentJoystickDir = null;
-    let joystickSendLoopTimer = null;
+        <!-- Center Controls (Start Button Area) -->
+        <div class="flex flex-row md:flex-col items-center justify-center gap-4 my-auto py-2">
+            <div class="hidden lg:flex flex-col items-center opacity-30 pointer-events-none mb-2">
+                <i class="fa-solid fa-gamepad text-4xl text-slate-500 mb-1"></i>
+                <span class="text-[10px] tracking-widest uppercase font-mono text-slate-400">WEBPAD CONTROLLER</span>
+            </div>
 
-    const PLAYER_CONFIGS = {
-        0: { name: "P1 (赤)", class: "player-theme-p1" },
-        1: { name: "P2 (青)", class: "player-theme-p2" },
-        2: { name: "P3 (黄)", class: "player-theme-p3" },
-        3: { name: "P4 (緑)", class: "player-theme-p4" }
-    };
+            <div class="flex items-center gap-3 bg-slate-900/40 p-2.5 rounded-2xl border border-slate-800/80 shadow-inner">
+                <!-- Start Button -->
+                <button data-button="START" type="button"
+                        class="action-btn-start px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-slate-200 font-bold text-xs tracking-wider select-none active:scale-95 transition-transform">
+                    <i class="fa-solid fa-play text-[10px] text-emerald-400 pointer-events-none"></i>
+                    <span class="pointer-events-none">START</span>
+                </button>
+            </div>
+        </div>
 
-    const ledEl = document.getElementById("led");
-    const statusTextEl = document.getElementById("status-text");
-    const playerNameEl = document.getElementById("player-name");
-    const playerBadgeEl = document.getElementById("player-badge");
-    const serverUrlInput = document.getElementById("server-url-input");
-    const connectBtn = document.getElementById("connect-btn");
-    const settingsPanel = document.getElementById("settings-panel");
-    const toggleSettingsBtn = document.getElementById("toggle-settings-btn");
-    const toggleLogBtn = document.getElementById("toggle-log-btn");
-    const logContainer = document.getElementById("log-container");
-    const toggleAudioBtn = document.getElementById("toggle-audio-btn");
-    const audioIcon = document.getElementById("audio-icon");
-    const fullscreenBtn = document.getElementById("fullscreen-btn");
+        <!-- Action Buttons (A & B) -->
+        <div class="relative w-48 h-48 sm:w-60 sm:h-60 flex items-center justify-center my-auto">
+            <div class="absolute inset-0 rounded-full border border-slate-800/80 bg-slate-950/40 pointer-events-none shadow-inner"></div>
 
-    const joystickContainer = document.getElementById("joystick-container");
-    const joystickKnob = document.getElementById("joystick-knob");
-    const arrows = {
-        up: document.getElementById("arrow-up"),
-        down: document.getElementById("arrow-down"),
-        left: document.getElementById("arrow-left"),
-        right: document.getElementById("arrow-right")
-    };
+            <div class="relative w-full h-full">
+                <button data-button="B" type="button"
+                        class="action-btn-b absolute left-2 bottom-6 sm:left-4 sm:bottom-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none">
+                    <span class="pointer-events-none">B</span>
+                    <span class="text-[9px] font-normal tracking-tight text-blue-200 opacity-80 uppercase pointer-events-none">SUB</span>
+                </button>
 
-    let audioCtx = null;
-    function playBeep(freq = 440, type = 'sine') {
-        if (!isAudioEnabled) return;
-        try {
+                <button data-button="A" type="button"
+                        class="action-btn-a absolute right-2 top-6 sm:right-4 sm:top-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-white font-black text-2xl tracking-wider select-none">
+                    <span class="pointer-events-none">A</span>
+                    <span class="text-[9px] font-normal tracking-tight text-red-200 opacity-80 uppercase pointer-events-none">ACTION</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full text-center py-1 text-[10px] text-slate-600 font-mono tracking-wider z-10">
+        PWA MODE &bull; CONTINUOUS INPUT LOOP ENABLED
+    </footer>
+
+    <script>
+        const CONFIG = {
+            defaultUrl: "ws://192.168.0.3:8765",
+            reconnectInterval: 3000,
+            vibrateDuration: 15,
+            joystickSendIntervalMs: 50,
+            deadzonePx: 18
+        };
+
+        let ws = null;
+        let reconnectTimer = null;
+        let isAudioEnabled = true;
+
+        let joystickTouchId = null;
+        let joystickCenter = { x: 0, y: 0 };
+        let currentJoystickDir = null;
+        let joystickSendLoopTimer = null;
+
+        const PLAYER_CONFIGS = {
+            0: { name: "P1 (赤)", class: "player-theme-p1" },
+            1: { name: "P2 (青)", class: "player-theme-p2" },
+            2: { name: "P3 (黄)", class: "player-theme-p3" },
+            3: { name: "P4 (緑)", class: "player-theme-p4" }
+        };
+
+        const ledEl = document.getElementById("led");
+        const statusTextEl = document.getElementById("status-text");
+        const playerNameEl = document.getElementById("player-name");
+        const playerBadgeEl = document.getElementById("player-badge");
+        const serverUrlInput = document.getElementById("server-url-input");
+        const connectBtn = document.getElementById("connect-btn");
+        const settingsPanel = document.getElementById("settings-panel");
+        const toggleSettingsBtn = document.getElementById("toggle-settings-btn");
+        const toggleLogBtn = document.getElementById("toggle-log-btn");
+        const logContainer = document.getElementById("log-container");
+        const toggleAudioBtn = document.getElementById("toggle-audio-btn");
+        const audioIcon = document.getElementById("audio-icon");
+        const fullscreenBtn = document.getElementById("fullscreen-btn");
+
+        const joystickContainer = document.getElementById("joystick-container");
+        const joystickKnob = document.getElementById("joystick-knob");
+        const arrows = {
+            up: document.getElementById("arrow-up"),
+            down: document.getElementById("arrow-down"),
+            left: document.getElementById("arrow-left"),
+            right: document.getElementById("arrow-right")
+        };
+
+        let audioCtx = null;
+
+        function initAudioContext() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (audioCtx.state === 'suspended') {
+            if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        }
+
+        function playBeep(freq = 440, type = 'sine') {
+            if (!isAudioEnabled) return;
+            try {
+                initAudioContext();
+                if (!audioCtx || audioCtx.state !== 'running') return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.06);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.06);
+            } catch (err) {}
+        }
+
+        function log(msg, isError = false) {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement("div");
+            if (isError) div.className = "text-red-400";
+            div.textContent = `[${time}] ${msg}`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function setConnectionStatus(state) {
+            ledEl.className = "w-3.5 h-3.5 rounded-full led-indicator transition-all ";
+            if (state === 'connected') {
+                ledEl.classList.add("led-connected");
+                statusTextEl.textContent = "接続完了";
+                statusTextEl.className = "text-xs sm:text-sm font-semibold text-emerald-400";
+            } else if (state === 'connecting') {
+                ledEl.classList.add("led-connecting");
+                statusTextEl.textContent = "接続中...";
+                statusTextEl.className = "text-xs sm:text-sm font-semibold text-amber-400";
+            } else {
+                ledEl.classList.add("led-disconnected");
+                statusTextEl.textContent = "未接続";
+                statusTextEl.className = "text-xs sm:text-sm font-semibold text-red-400";
+            }
+        }
+
+        function updatePlayerUI(pid) {
+            const player = PLAYER_CONFIGS[pid] || { name: `P${pid + 1}`, class: "player-theme-p1" };
+            playerNameEl.textContent = player.name;
+            Object.values(PLAYER_CONFIGS).forEach(p => playerBadgeEl.classList.remove(p.class));
+            playerBadgeEl.classList.add(player.class);
+            log(`プレイヤー割り当て完了: ${player.name}`);
+        }
+
+        function connectWebSocket() {
+            const url = serverUrlInput.value.trim() || CONFIG.defaultUrl;
             
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.06);
+            if (ws) {
+                ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
+                ws.close();
+            }
 
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
 
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.06);
-        } catch (err) {}
-    }
+            setConnectionStatus('connecting');
+            log(`接続開始: ${url}`);
 
-    function log(msg, isError = false) {
-        const time = new Date().toLocaleTimeString();
-        const div = document.createElement("div");
-        if (isError) div.className = "text-red-400";
-        div.textContent = `[${time}] ${msg}`;
-        logContainer.appendChild(div);
-        logContainer.scrollTop = logContainer.scrollHeight;
-    }
+            try {
+                ws = new WebSocket(url);
 
-    function setConnectionStatus(state) {
-        ledEl.className = "w-3.5 h-3.5 rounded-full led-indicator transition-all ";
-        if (state === 'connected') {
-            ledEl.classList.add("led-connected");
-            statusTextEl.textContent = "接続完了";
-            statusTextEl.className = "text-xs sm:text-sm font-semibold text-emerald-400";
-        } else if (state === 'connecting') {
-            ledEl.classList.add("led-connecting");
-            statusTextEl.textContent = "接続中...";
-            statusTextEl.className = "text-xs sm:text-sm font-semibold text-amber-400";
-        } else {
-            ledEl.classList.add("led-disconnected");
-            statusTextEl.textContent = "未接続";
-            statusTextEl.className = "text-xs sm:text-sm font-semibold text-red-400";
-        }
-    }
+                ws.onopen = () => {
+                    setConnectionStatus('connected');
+                    log("WebSocket サーバーに接続しました");
+                };
 
-    function updatePlayerUI(pid) {
-        const player = PLAYER_CONFIGS[pid] || { name: `P${pid + 1}`, class: "player-theme-p1" };
-        playerNameEl.textContent = player.name;
-        Object.values(PLAYER_CONFIGS).forEach(p => playerBadgeEl.classList.remove(p.class));
-        playerBadgeEl.classList.add(player.class);
-        log(`プレイヤー割り当て完了: ${player.name}`);
-    }
-
-    function connectWebSocket() {
-        const url = serverUrlInput.value.trim() || CONFIG.defaultUrl;
-        
-        if (ws) {
-            ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
-            ws.close();
-        }
-
-        if (reconnectTimer) {
-            clearTimeout(reconnectTimer);
-            reconnectTimer = null;
-        }
-
-        setConnectionStatus('connecting');
-        log(`接続開始: ${url}`);
-
-        try {
-            ws = new WebSocket(url);
-
-            ws.onopen = () => {
-                setConnectionStatus('connected');
-                log("WebSocket サーバーに接続しました");
-            };
-
-            ws.onmessage = (event) => {
-                log(`受信: ${event.data}`);
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === "init" && typeof data.pid === "number") {
-                        updatePlayerUI(data.pid);
+                ws.onmessage = (event) => {
+                    log(`受信: ${event.data}`);
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === "init" && typeof data.pid === "number") {
+                            updatePlayerUI(data.pid);
+                        }
+                    } catch (e) {
+                        log(`JSON解析エラー: ${e.message}`, true);
                     }
-                } catch (e) {
-                    log(`JSON解析エラー: ${e.message}`, true);
-                }
-            };
+                };
 
-            ws.onerror = () => {
-                log("WebSocket エラーが発生しました", true);
-            };
+                ws.onerror = () => {
+                    log("WebSocket エラーが発生しました", true);
+                };
 
-            ws.onclose = () => {
+                ws.onclose = () => {
+                    setConnectionStatus('disconnected');
+                    log(`切断されました。${CONFIG.reconnectInterval / 1000}秒後に自動再接続を試みます...`);
+                    reconnectTimer = setTimeout(connectWebSocket, CONFIG.reconnectInterval);
+                };
+
+            } catch (err) {
                 setConnectionStatus('disconnected');
-                log(`切断されました。${CONFIG.reconnectInterval / 1000}秒後に自動再接続を試みます...`);
-                reconnectTimer = setTimeout(connectWebSocket, CONFIG.reconnectInterval);
-            };
-
-        } catch (err) {
-            setConnectionStatus('disconnected');
-            log(`接続失敗: ${err.message}`, true);
-        }
-    }
-
-    function sendButtonCommand(buttonName) {
-        const payload = JSON.stringify({ cmd: "btn", button: buttonName });
-
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(payload);
-            log(`送信: ${payload}`);
-        } else {
-            log(`未接続のため送信不可: ${payload}`, true);
-        }
-    }
-
-    function startJoystickSendLoop() {
-        if (joystickSendLoopTimer) return;
-        joystickSendLoopTimer = setInterval(() => {
-            if (currentJoystickDir) {
-                sendButtonCommand(currentJoystickDir);
+                log(`接続失敗: ${err.message}`, true);
             }
-        }, CONFIG.joystickSendIntervalMs);
-    }
-
-    function stopJoystickSendLoop() {
-        if (joystickSendLoopTimer) {
-            clearInterval(joystickSendLoopTimer);
-            joystickSendLoopTimer = null;
         }
-    }
 
-    function updateJoystickArrowUI(dir) {
-        Object.keys(arrows).forEach(key => {
-            if (key === dir) {
-                arrows[key].classList.add("active");
+        function sendButtonCommand(buttonName) {
+            const payload = JSON.stringify({ cmd: "btn", button: buttonName });
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(payload);
+                log(`送信: ${payload}`);
             } else {
-                arrows[key].classList.remove("active");
-            }
-        });
-    }
-
-    function handleJoystickTouch(touch) {
-        const dx = touch.clientX - joystickCenter.x;
-        const dy = touch.clientY - joystickCenter.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        const baseRadius = joystickContainer.clientWidth / 2;
-        const knobRadius = joystickKnob.clientWidth / 2;
-        const maxRadius = baseRadius - knobRadius + 8;
-
-        let knobX = dx;
-        let knobY = dy;
-
-        if (distance > maxRadius) {
-            const angle = Math.atan2(dy, dx);
-            knobX = Math.cos(angle) * maxRadius;
-            knobY = Math.sin(angle) * maxRadius;
-        }
-
-        joystickKnob.style.transform = `translate3d(${knobX}px, ${knobY}px, 0)`;
-        joystickKnob.classList.add("active");
-
-        let newDir = null;
-        if (distance >= CONFIG.deadzonePx) {
-            const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-            
-            if (angleDeg >= -135 && angleDeg < -45) {
-                newDir = "up";
-            } else if (angleDeg >= -45 && angleDeg < 45) {
-                newDir = "right";
-            } else if (angleDeg >= 45 && angleDeg < 135) {
-                newDir = "down";
-            } else {
-                newDir = "left";
+                log(`未接続のため送信不可: ${payload}`, true);
             }
         }
 
-        if (newDir !== currentJoystickDir) {
-            currentJoystickDir = newDir;
-            updateJoystickArrowUI(newDir);
+        function startJoystickSendLoop() {
+            if (joystickSendLoopTimer) return;
+            joystickSendLoopTimer = setInterval(() => {
+                if (currentJoystickDir) {
+                    sendButtonCommand(currentJoystickDir);
+                }
+            }, CONFIG.joystickSendIntervalMs);
+        }
 
-            if (newDir) {
-                sendButtonCommand(newDir);
-                startJoystickSendLoop();
-                if (navigator.vibrate) navigator.vibrate(CONFIG.vibrateDuration);
-                playBeep(350, 'sine');
-            } else {
-                stopJoystickSendLoop();
+        function stopJoystickSendLoop() {
+            if (joystickSendLoopTimer) {
+                clearInterval(joystickSendLoopTimer);
+                joystickSendLoopTimer = null;
             }
         }
-    }
 
-    function resetJoystick() {
-        joystickTouchId = null;
-        currentJoystickDir = null;
-        stopJoystickSendLoop();
-
-        joystickKnob.style.transform = `translate3d(0px, 0px, 0)`;
-        joystickKnob.classList.remove("active");
-        updateJoystickArrowUI(null);
-    }
-
-    joystickContainer.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        if (joystickTouchId !== null) return;
-
-        const touch = e.changedTouches[0];
-        joystickTouchId = touch.identifier;
-
-        const rect = joystickContainer.getBoundingClientRect();
-        joystickCenter = {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2
-        };
-
-        handleJoystickTouch(touch);
-    }, { passive: false });
-
-    window.addEventListener("touchmove", (e) => {
-        if (joystickTouchId === null) return;
-
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === joystickTouchId) {
-                handleJoystickTouch(e.changedTouches[i]);
-                break;
-            }
+        function updateJoystickArrowUI(dir) {
+            Object.keys(arrows).forEach(key => {
+                if (key === dir) {
+                    arrows[key].classList.add("active");
+                } else {
+                    arrows[key].classList.remove("active");
+                }
+            });
         }
-    }, { passive: false });
 
-    window.addEventListener("touchend", (e) => {
-        if (joystickTouchId === null) return;
+        function handleJoystickTouch(touch) {
+            const dx = touch.clientX - joystickCenter.x;
+            const dy = touch.clientY - joystickCenter.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === joystickTouchId) {
-                resetJoystick();
-                break;
+            const baseRadius = joystickContainer.clientWidth / 2;
+            const knobRadius = joystickKnob.clientWidth / 2;
+            const maxRadius = baseRadius - knobRadius + 8;
+
+            let knobX = dx;
+            let knobY = dy;
+
+            if (distance > maxRadius) {
+                const angle = Math.atan2(dy, dx);
+                knobX = Math.cos(angle) * maxRadius;
+                knobY = Math.sin(angle) * maxRadius;
             }
-        }
-    });
 
-    window.addEventListener("touchcancel", (e) => {
-        if (joystickTouchId === null) return;
+            joystickKnob.style.transform = `translate3d(${knobX}px, ${knobY}px, 0)`;
+            joystickKnob.classList.add("active");
 
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === joystickTouchId) {
-                resetJoystick();
-                break;
+            let newDir = null;
+            if (distance >= CONFIG.deadzonePx) {
+                const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+                
+                if (angleDeg >= -135 && angleDeg < -45) {
+                    newDir = "up";
+                } else if (angleDeg >= -45 && angleDeg < 45) {
+                    newDir = "right";
+                } else if (angleDeg >= 45 && angleDeg < 135) {
+                    newDir = "down";
+                } else {
+                    newDir = "left";
+                }
             }
-        }
-    });
 
-    const activeActionButtons = new Set();
+            if (newDir !== currentJoystickDir) {
+                currentJoystickDir = newDir;
+                updateJoystickArrowUI(newDir);
 
-    function handleActionTouchState(e) {
-        e.preventDefault();
-        const currentTouches = new Set();
-
-        for (let i = 0; i < e.touches.length; i++) {
-            const touch = e.touches[i];
-            if (touch.identifier === joystickTouchId) continue;
-
-            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (targetEl) {
-                const btn = targetEl.closest('[data-button]');
-                if (btn) {
-                    const btnName = btn.getAttribute('data-button');
-                    currentTouches.add(btnName);
+                if (newDir) {
+                    sendButtonCommand(newDir);
+                    startJoystickSendLoop();
+                    if (navigator.vibrate) navigator.vibrate(CONFIG.vibrateDuration);
+                    playBeep(350, 'sine');
+                } else {
+                    stopJoystickSendLoop();
                 }
             }
         }
 
-        for (const btnName of currentTouches) {
-            if (!activeActionButtons.has(btnName)) {
-                activeActionButtons.add(btnName);
-                sendButtonCommand(btnName);
-                setActionButtonUI(btnName, true);
+        function resetJoystick() {
+            joystickTouchId = null;
+            currentJoystickDir = null;
+            stopJoystickSendLoop();
 
-                if (navigator.vibrate) navigator.vibrate(CONFIG.vibrateDuration);
-                playBeep(btnName === 'A' ? 620 : 480, 'square');
+            joystickKnob.style.transform = `translate3d(0px, 0px, 0)`;
+            joystickKnob.classList.remove("active");
+            updateJoystickArrowUI(null);
+        }
+
+        joystickContainer.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            initAudioContext();
+            if (joystickTouchId !== null) return;
+
+            const touch = e.changedTouches[0];
+            joystickTouchId = touch.identifier;
+
+            const rect = joystickContainer.getBoundingClientRect();
+            joystickCenter = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+
+            handleJoystickTouch(touch);
+        }, { passive: false });
+
+        window.addEventListener("touchmove", (e) => {
+            if (joystickTouchId === null) return;
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joystickTouchId) {
+                    handleJoystickTouch(e.changedTouches[i]);
+                    break;
+                }
             }
-        }
+        }, { passive: false });
 
-        for (const btnName of activeActionButtons) {
-            if (!currentTouches.has(btnName)) {
-                activeActionButtons.delete(btnName);
-                setActionButtonUI(btnName, false);
+        window.addEventListener("touchend", (e) => {
+            if (joystickTouchId === null) return;
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joystickTouchId) {
+                    resetJoystick();
+                    break;
+                }
             }
-        }
-    }
-
-    function setActionButtonUI(buttonName, isActive) {
-        const btnEl = document.querySelector(`[data-button="${buttonName}"]`);
-        if (btnEl) {
-            if (isActive) btnEl.classList.add("active");
-            else btnEl.classList.remove("active");
-        }
-    }
-
-    window.addEventListener("touchstart", handleActionTouchState, { passive: false });
-    window.addEventListener("touchmove", handleActionTouchState, { passive: false });
-    window.addEventListener("touchend", handleActionTouchState, { passive: false });
-
-    toggleSettingsBtn.addEventListener("click", () => settingsPanel.classList.toggle("hidden"));
-    toggleLogBtn.addEventListener("click", () => logContainer.classList.toggle("hidden"));
-    connectBtn.addEventListener("click", () => connectWebSocket());
-
-    toggleAudioBtn.addEventListener("click", () => {
-        isAudioEnabled = !isAudioEnabled;
-        if (isAudioEnabled) {
-            audioIcon.className = "fa-solid fa-volume-high";
-            toggleAudioBtn.classList.remove("text-red-400");
-            playBeep(520, 'sine');
-        } else {
-            audioIcon.className = "fa-solid fa-volume-xmark";
-            toggleAudioBtn.classList.add("text-red-400");
-        }
-    });
-
-    fullscreenBtn.addEventListener("click", () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                log(`フルスクリーンエラー: ${err.message}`, true);
-            });
-        } else if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    });
-
-    // Service Worker Registration for PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then(reg => {
-                log("Service Worker 登録成功");
-            }).catch(err => {
-                log(`Service Worker 登録失敗: ${err}`, true);
-            });
         });
-    }
 
-    window.onload = () => {
-        log("ジョイスティックWebコントローラー(PWA)起動");
-        connectWebSocket();
-    };
-</script>
+        window.addEventListener("touchcancel", (e) => {
+            if (joystickTouchId === null) return;
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joystickTouchId) {
+                    resetJoystick();
+                    break;
+                }
+            }
+        });
+
+        const activeActionButtons = new Set();
+
+        function handleActionTouchState(e) {
+            // HeaderやSettingsPanelのUI要素が操作された場合はイベントをブロックせずそのまま通す
+            const targetElElement = document.elementFromPoint(
+                e.touches && e.touches.length ? e.touches[0].clientX : 0,
+                e.touches && e.touches.length ? e.touches[0].clientY : 0
+            );
+            if (targetElElement && targetElElement.closest('header, #settings-panel, input, button:not([data-button])')) {
+                return;
+            }
+
+            e.preventDefault();
+            initAudioContext();
+            const currentTouches = new Set();
+
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (touch.identifier === joystickTouchId) continue;
+
+                const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (targetEl) {
+                    const btn = targetEl.closest('[data-button]');
+                    if (btn) {
+                        const btnName = btn.getAttribute('data-button');
+                        currentTouches.add(btnName);
+                    }
+                }
+            }
+
+            for (const btnName of currentTouches) {
+                if (!activeActionButtons.has(btnName)) {
+                    activeActionButtons.add(btnName);
+                    sendButtonCommand(btnName);
+                    setActionButtonUI(btnName, true);
+
+                    if (navigator.vibrate) navigator.vibrate(CONFIG.vibrateDuration);
+                    
+                    if (btnName === 'A') playBeep(620, 'square');
+                    else if (btnName === 'B') playBeep(480, 'square');
+                    else if (btnName === 'START') playBeep(550, 'sine');
+                    else playBeep(440, 'sine');
+                }
+            }
+
+            for (const btnName of activeActionButtons) {
+                if (!currentTouches.has(btnName)) {
+                    activeActionButtons.delete(btnName);
+                    setActionButtonUI(btnName, false);
+                }
+            }
+        }
+
+        function setActionButtonUI(buttonName, isActive) {
+            const btnEl = document.querySelector(`[data-button="${buttonName}"]`);
+            if (btnEl) {
+                if (isActive) btnEl.classList.add("active");
+                else btnEl.classList.remove("active");
+            }
+        }
+
+        window.addEventListener("touchstart", handleActionTouchState, { passive: false });
+        window.addEventListener("touchmove", handleActionTouchState, { passive: false });
+        window.addEventListener("touchend", handleActionTouchState, { passive: false });
+
+        // Header Control Buttons Direct Handlers
+        toggleSettingsBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            settingsPanel.classList.toggle("hidden");
+            log("設定パネル表示切替");
+        });
+
+        toggleLogBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            logContainer.classList.toggle("hidden");
+        });
+
+        connectBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            connectWebSocket();
+        });
+
+        toggleAudioBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            initAudioContext();
+            isAudioEnabled = !isAudioEnabled;
+            if (isAudioEnabled) {
+                audioIcon.className = "fa-solid fa-volume-high";
+                toggleAudioBtn.classList.remove("text-red-400");
+                playBeep(520, 'sine');
+                log("サウンド: ON");
+            } else {
+                audioIcon.className = "fa-solid fa-volume-xmark";
+                toggleAudioBtn.classList.add("text-red-400");
+                log("サウンド: OFF");
+            }
+        });
+
+        fullscreenBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            log("全画面表示ボタンがクリックされました");
+
+            const docEl = document.documentElement;
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+            if (!isFullscreen) {
+                if (docEl.requestFullscreen) {
+                    docEl.requestFullscreen();
+                } else if (docEl.webkitRequestFullscreen) { /* Safari / iOS */
+                    docEl.webkitRequestFullscreen();
+                } else if (docEl.mozRequestFullScreen) { /* Firefox */
+                    docEl.mozRequestFullScreen();
+                } else if (docEl.msRequestFullscreen) { /* IE/Edge */
+                    docEl.msRequestFullscreen();
+                } else {
+                    log("お使いのブラウザは全画面表示をサポートしていません", true);
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        });
+
+        // Service Worker Registration for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    log("Service Worker 登録成功");
+                }).catch(err => {
+                    log(`Service Worker 登録失敗: ${err}`, true);
+                });
+            });
+        }
+
+        window.onload = () => {
+            log("ジョイスティックWebコントローラー(PWA)起動");
+            connectWebSocket();
+        };
+    </script>
+</body>
+</html>
